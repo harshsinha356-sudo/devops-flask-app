@@ -22,7 +22,7 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh ubuntu@13.204.64.236 "
+          ssh -o StrictHostKeyChecking=no ubuntu@13.204.64.236 "
             cd devops-flask-app || exit 1
             git pull
             sudo docker build -t devops-flask-app .
