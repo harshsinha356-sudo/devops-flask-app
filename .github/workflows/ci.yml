@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI-CD Pipeline
 
 on:
   push:
@@ -6,22 +6,27 @@ on:
       - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
+      - name: Setup SSH
         run: |
-          pip install -r requirements.txt
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 13.204.64.236 >> ~/.ssh/known_hosts
 
-      - name: Build Docker image
+      - name: Deploy to EC2
         run: |
-          docker build -t devops-flask-app .
+          ssh ubuntu@13.204.64.236 "
+            cd devops-flask-app || exit 1
+            git pull
+            sudo docker build -t devops-flask-app .
+            sudo docker stop flask-app || true
+            sudo docker rm flask-app || true
+            sudo docker run -d -p 5000:5000 --name flask-app devops-flask-app
+          "
